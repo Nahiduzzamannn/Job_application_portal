@@ -1,0 +1,37 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Generate Rolls</title>
+  </head>
+  <body>
+    <h2>Generate Roll Numbers</h2>
+
+    {% if messages %}
+      <ul>
+      {% for message in messages %}
+        <li >
+          {{ message }}
+        </li>
+      {% endfor %}
+      </ul>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <label for="subcategory_id">Subcategory:</label>
+      <select name="subcategory_id" id="subcategory_id" required>
+        <option value="">-- Select Subcategory --</option>
+        {% for s in subcategories %}
+          <option value="{{ s.id }}">{{ s.name }} (ID: {{ s.id }})</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit">Generate</button>
+    </form>
+
+    <p style="margin-top: 1rem; color:#666;">
+      Format: &lt;subcategory_id&gt;&lt;5-digit sequence&gt; (e.g., 7 → 700001).
+    </p>
+  </body>
+</html>
