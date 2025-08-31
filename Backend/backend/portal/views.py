@@ -367,7 +367,13 @@ def generate_rolls_view(request):
 
 @staff_member_required
 def attendance_sheet_options(request):
-    return render(request, "portal/attendence_options.html")
+    post_codes = (SeatPlan.objects.values_list('post_code', flat=True)
+                  .distinct().order_by('post_code'))
+    subcategories = SubCategory.objects.all().order_by('name')
+    return render(request, "portal/attendence_options.html", {
+        "post_codes": post_codes,
+        "subcategories": subcategories,
+    })
 
 
 
@@ -402,137 +408,140 @@ def _seat_category(seat):
 @staff_member_required
 def generate_attendance_from_seatplan(request):
     """
-    ONE PDF attendance sheet grouped by (exam_center, building, floor, room_no).
-    Layout optimized for A3 landscape: larger rows, wider Present col, balanced gaps.
+    Generate attendance PDF grouped by center/building/floor/room.
+    Shows all seat rows. For each row, if SeatPlan.post_code matches
+    SubCategory.custom_id and SeatPlan.roll matches SchoolApplicant.roll_number,
+    fill Name/Roll/Photo/Signature; otherwise leave blank.
+    Includes a Post column from SeatPlan (post_name -> post_code fallback).
     """
+    post_code_filter = (request.GET.get('post_code') or '').strip()
+    subcat_filter = (request.GET.get('subcategory_id') or '').strip()
+    action_flag = (request.GET.get('action') or request.GET.get('all') or '').strip().lower()
 
-    # ---------- local helpers ----------
-    def norm_local(val):
-        if val is None:
-            return None
-        s = str(val).strip()
-        if not s:
-            return None
-        return " ".join(s.split()).upper()
+    # If no filters provided and no explicit generate-all flag, show the options page here
+    if not post_code_filter and not subcat_filter and action_flag not in ('1', 'true', 'go', 'generate', 'all'):
+        post_codes = (SeatPlan.objects.values_list('post_code', flat=True)
+                      .distinct().order_by('post_code'))
+        subcategories = SubCategory.objects.all().order_by('name')
+        return render(request, "portal/attendence_options.html", {
+            "post_codes": post_codes,
+            "subcategories": subcategories,
+        })
 
-    def seat_roll_value(seat):
-        if hasattr(seat, 'roll') and seat.roll is not None:
-            return str(seat.roll).strip()
-        app = getattr(seat, 'applicant', None)
-        rn = getattr(app, 'roll_number', None)
-        return str(rn).strip() if rn else None
-
-    def seat_name(seat):
-        for attr in ("candidate_name", "name", "student_name"):
-            val = getattr(seat, attr, None)
-            if val:
-                return str(val)
-        return "N/A"
-
-    def seat_category(seat):
-        for attr in ("category", "post_name", "post_code", "sub_category", "post"):
-            val = getattr(seat, attr, None)
-            if val:
-                return str(val)
-        return "N/A"
-
-    def _image_path(filefield):
-        if not filefield:
-            return None
-        try:
-            path = getattr(filefield, "path", None) or os.path.join(settings.MEDIA_ROOT, filefield.name)
-            return path if path and os.path.exists(path) else None
-        except Exception:
-            return None
-    # -----------------------------------
-
-    # 1) SeatPlan rows
-    seat_plans = (
-        SeatPlan.objects
-        .all()
-        .order_by('exam_center', 'building', 'floor', 'room_no', 'id')
-    )
+    # 1) SeatPlan rows (optional post_code filter)
+    seat_plans = SeatPlan.objects.all()
+    if post_code_filter:
+        seat_plans = seat_plans.filter(post_code__iexact=post_code_filter)
+    seat_plans = seat_plans.order_by('exam_center', 'building', 'floor', 'room_no', 'id')
     if not seat_plans.exists():
-        return HttpResponse("No SeatPlan data found.", content_type="text/plain", status=404)
+        return HttpResponse("No SeatPlan data found for the selected filters.", content_type="text/plain", status=404)
 
-    # 2) Build (seat, raw_roll, norm_roll) & key set
-    enriched, norm_keys = [], set()
-    for s in seat_plans:
-        raw = seat_roll_value(s)
-        n = norm_local(raw)
-        enriched.append((s, raw, n))
-        if n:
-            norm_keys.add(n)
+    # If a specific subcategory is provided, fetch it to narrow matching
+    subcat_obj = None
+    if subcat_filter.isdigit():
+        try:
+            subcat_obj = SubCategory.objects.get(id=int(subcat_filter))
+        except SubCategory.DoesNotExist:
+            subcat_obj = None
 
-    # 3) roll -> applicant map
-    app_by_norm = {}
-    if norm_keys:
-        for a in SchoolApplicant.objects.filter(roll_number__isnull=False).select_related('subcategory'):
-            n = norm_local(a.roll_number)
-            if n and n in norm_keys and n not in app_by_norm:
-                app_by_norm[n] = a
+    # Build a fast lookup map of applicants by (CUSTOM_ID only, uppercased)
+    apps_qs = SchoolApplicant.objects.select_related('subcategory')
+    if subcat_obj:
+        apps_qs = apps_qs.filter(subcategory=subcat_obj)
 
-    # 4) PDF setup (A3 landscape)
+    applicants_by_code = {}
+    for a in apps_qs:
+        code_key = ((getattr(a.subcategory, 'custom_id', '') or '').strip().upper())
+        if not code_key:
+            continue
+        applicants_by_code.setdefault(code_key, []).append(a)
+
+    # Sort each code bucket by roll_number then id for stable assignment
+    for code_key, lst in applicants_by_code.items():
+        lst.sort(key=lambda x: ((x.roll_number or ''), x.id))
+
+    # Track how many applicants consumed per code as we traverse seat rows
+    consumed_idx = {}
+
+    # 4) PDF setup
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename=attendance_sheets_all.pdf'
+    response['Content-Disposition'] = 'attachment; filename=attendance_sheets.pdf'
 
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=landscape(A3))
     PAGE_W, PAGE_H = landscape(A3)
 
-    # --- Layout constants tuned for A3 landscape ---
-    # Margins/gaps
-    LM, RM = 0.35 * inch, 0.35 * inch   # slightly reduced to gain table width
-    TM, BM = 0.60 * inch, 0.60 * inch   # balanced top/bottom
-    CELL_PAD = 4                        # text padding inside cells (points)
+    # --- Layout constants ---
+    LM, RM = 0.35 * inch, 0.35 * inch
+    TM, BM = 0.60 * inch, 0.60 * inch
+    CELL_PAD = 4
 
     CONTENT_W = PAGE_W - LM - RM
-    HEADER_H  = 1.40 * inch             # header area height
+    HEADER_H  = 1.55 * inch
 
-    # Row height & image size
-    ROW_H = 1.05 * inch                 # fixed row height (taller for A3)
-    IMAGE_TARGET_H = ROW_H - 0.30 * inch  # image height within row
+    ROW_H = 1.05 * inch
+    IMAGE_TARGET_H = ROW_H - 0.30 * inch
 
-    # Column widths as % of CONTENT_W (sum = 1.00)
-    # S.No 5% | Name 26% | Category 20% | Roll 11% | Photo 16% | Signature 16% | Present 6%
-    PCTS = [0.05, 0.26, 0.20, 0.11, 0.16, 0.16, 0.06]
-    SN_W, NAME_W, CAT_W, ROLL_W, PHOTO_W, SIGN_W, PRESENT_W = [CONTENT_W * p for p in PCTS]
-    COL_W = [SN_W, NAME_W, CAT_W, ROLL_W, PHOTO_W, SIGN_W, PRESENT_W]
-
-    HEADERS = ["S.No", "Name", "Category", "Roll No", "Photo", "Signature", "Present"]
-
+    # Compute rows per page once
     usable_h = PAGE_H - TM - BM - HEADER_H
     rows_per_page = max(1, int(usable_h // ROW_H))
-    # ------------------------------------------------
 
-    def draw_header(center, bldg, flr, room):
+    # Fixed columns: S.No, Post, Roll No, Name, Photo, Signature, Present
+    COLS = [
+        {"label": "S.No", "key": "serial", "weight": 0.7},
+        {"label": "Post", "key": "post", "weight": 3.0},
+        {"label": "Roll No", "key": "roll", "weight": 1.6},
+        {"label": "Name", "key": "name", "weight": 3.2},
+        {"label": "Photo", "key": "photo", "weight": 1.4},
+        {"label": "Signature", "key": "signature", "weight": 1.4},
+        {"label": "Present", "key": "present", "weight": 0.9},
+    ]
+    total_w = sum(col["weight"] for col in COLS)
+    for col in COLS:
+        col["width"] = CONTENT_W * (col["weight"] / max(total_w, 1e-6))
+
+    def _image_path(filefield):
+        if not filefield:
+            return None
+        try:
+            path = getattr(filefield, "path", None) or os.path.join(settings.MEDIA_ROOT, getattr(filefield, 'name', ''))
+            return path if path and os.path.exists(path) else None
+        except Exception:
+            return None
+
+    def draw_header(center, bldg, flr, room, post_label, code_label, exam_time):
         y = PAGE_H - TM
         c.setFont("Helvetica-Bold", 13)
         c.drawString(LM, y, f"Institution: {center or 'N/A'}")
         c.setFont("Helvetica", 11)
         c.drawRightString(PAGE_W - RM, y, f"Building: {bldg or 'N/A'} | Floor: {flr or 'N/A'} | Room: {room or 'N/A'}")
 
-        y -= 0.42 * inch
+        y -= 0.32 * inch
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(LM, y, f"Post: {post_label}")
+        c.setFont("Helvetica", 11)
+        c.drawRightString(PAGE_W - RM, y, f"Code: {code_label} | Exam: {exam_time or 'N/A'}")
+
+        y -= 0.32 * inch
         c.setFont("Helvetica-Bold", 16)
         c.drawCentredString(PAGE_W / 2, y, "ATTENDANCE SHEET")
 
-        y -= 0.32 * inch
+        y -= 0.28 * inch
         c.setFont("Helvetica", 11)
         c.drawString(LM, y, "Date: " + tz_now().strftime("%d-%b-%Y"))
 
-        y -= 0.38 * inch
+        y -= 0.36 * inch
         c.setFont("Helvetica-Bold", 11)
         x = LM
-        for i, h in enumerate(HEADERS):
-            c.rect(x, y - 0.24 * inch, COL_W[i], 0.38 * inch, fill=1, stroke=0)
+        for col in COLS:
+            c.rect(x, y - 0.24 * inch, col["width"], 0.38 * inch, fill=1, stroke=0)
             c.setFillColorRGB(1, 1, 1)
-            c.drawCentredString(x + COL_W[i] / 2, y - 0.07 * inch, h)
+            c.drawCentredString(x + col["width"] / 2, y - 0.07 * inch, col["label"])
             c.setFillColorRGB(0, 0, 0)
-            x += COL_W[i]
-        return y - 0.45 * inch  # body starts here
+            x += col["width"]
+        return y - 0.45 * inch
 
-    # fixed-height, centered image
-    def draw_image_cell(filefield, x, y_bottom, w, h_row, fallback_text="N/A"):
+    def draw_image_cell(filefield, x, y_bottom, w, h_row):
         c.rect(x, y_bottom, w, h_row)
         inner_x, inner_y = x + 2, y_bottom + 2
         inner_w, inner_h = w - 4, h_row - 4
@@ -548,17 +557,15 @@ def generate_attendance_from_seatplan(request):
                     draw_h = min(inner_h, ih * scale)
                     dx = inner_x + (inner_w - draw_w) / 2
                     dy = y_bottom + (h_row - draw_h) / 2
-                    c.drawImage(img, dx, dy, width=draw_w, height=draw_h,
-                                preserveAspectRatio=True, mask='auto')
+                    c.drawImage(img, dx, dy, width=draw_w, height=draw_h, preserveAspectRatio=True, mask='auto')
                     return
             except Exception:
                 pass
-        c.setFont("Helvetica-Oblique", 9)
-        c.drawCentredString(x + w/2, y_bottom + h_row/2 - 4, fallback_text)
+        # leave blank if no image
 
     def draw_checkbox_cell(x, y_bottom, w, h_row):
         c.rect(x, y_bottom, w, h_row)
-        side = min(0.38 * inch, w - 6, h_row - 6)  # larger box for A3
+        side = min(0.38 * inch, w - 6, h_row - 6)
         bx, by = x + (w - side)/2, y_bottom + (h_row - side)/2
         c.rect(bx, by, side, side)
         c.setFillColorRGB(0.95, 0.95, 0.95)
@@ -575,75 +582,86 @@ def generate_attendance_from_seatplan(request):
         else:
             c.drawString(x + pad, y_bottom + h_row/2 - size/2, s)
 
-    def draw_row(i, seat, raw_roll, norm_roll, y_bottom):
-        app = app_by_norm.get(norm_roll) if norm_roll else None
-
-        name = getattr(app, "student_name", None) or seat_name(seat)
-        category = seat_category(seat)
-        roll_disp = raw_roll or getattr(app, "roll_number", None) or "N/A"
-
-        row_h = ROW_H  # fixed
-
-        # zebra background
+    def draw_row(i, seat_row, applicant, y_bottom):
+        row_h = ROW_H
         if i % 2 == 0:
             c.setFillColorRGB(0.965, 0.965, 0.965)
             c.rect(LM, y_bottom, CONTENT_W, row_h, fill=1, stroke=0)
             c.setFillColorRGB(0, 0, 0)
 
         x = LM
-        # S.No
-        c.rect(x, y_bottom, SN_W, row_h)
-        draw_text_cell(i, x, y_bottom, SN_W, row_h, align="center")
-        x += SN_W
-        # Name
-        c.rect(x, y_bottom, NAME_W, row_h)
-        draw_text_cell(name, x, y_bottom, NAME_W, row_h)
-        x += NAME_W
-        # Category
-        c.rect(x, y_bottom, CAT_W, row_h)
-        draw_text_cell(category, x, y_bottom, CAT_W, row_h)
-        x += CAT_W
-        # Roll
-        c.rect(x, y_bottom, ROLL_W, row_h)
-        draw_text_cell(roll_disp, x, y_bottom, ROLL_W, row_h, align="center")
-        x += ROLL_W
-        # Photo
-        draw_image_cell(getattr(app, "photo", None) if app else None, x, y_bottom, PHOTO_W, row_h)
-        x += PHOTO_W
-        # Signature
-        draw_image_cell(getattr(app, "signature", None) if app else None, x, y_bottom, SIGN_W, row_h)
-        x += SIGN_W
-        # Present
-        draw_checkbox_cell(x, y_bottom, PRESENT_W, row_h)
-
+        for col in COLS:
+            key = col["key"]
+            w = col["width"]
+            if key == 'serial':
+                c.rect(x, y_bottom, w, row_h)
+                draw_text_cell(i, x, y_bottom, w, row_h, align="center")
+            elif key == 'present':
+                draw_checkbox_cell(x, y_bottom, w, row_h)
+            elif key == 'post':
+                c.rect(x, y_bottom, w, row_h)
+                post_text = getattr(seat_row, 'post_name', None) or getattr(seat_row, 'post_code', '')
+                draw_text_cell(post_text, x, y_bottom, w, row_h)
+            elif key == 'roll':
+                c.rect(x, y_bottom, w, row_h)
+                roll_text = (getattr(applicant, 'roll_number', '') if applicant else '')
+                draw_text_cell(roll_text, x, y_bottom, w, row_h, align="center")
+            elif key == 'name':
+                c.rect(x, y_bottom, w, row_h)
+                name_text = getattr(applicant, 'student_name', '') if applicant else ''
+                draw_text_cell(name_text, x, y_bottom, w, row_h)
+            elif key == 'photo':
+                draw_image_cell(getattr(applicant, 'photo', None) if applicant else None, x, y_bottom, w, row_h)
+            elif key == 'signature':
+                draw_image_cell(getattr(applicant, 'signature', None) if applicant else None, x, y_bottom, w, row_h)
+            x += w
         return row_h
 
     def key_tuple(seat):
         return (seat.exam_center, seat.building, seat.floor, seat.room_no)
 
-    enriched.sort(
-        key=lambda t: (t[0].exam_center, t[0].building, t[0].floor, t[0].room_no, t[2] or "")
-    )
+    # Render room-wise over actual SeatPlan rows
+    page_started = False
+    for (center, bldg, flr, room), group in groupby(seat_plans, key=lambda s: key_tuple(s)):
+        rows = list(group)
+        # Determine labels for header (handle multiple posts in room)
+        post_names = list({(r.post_name or '').strip() for r in rows if (r.post_name or '').strip()})
+        codes = list({(r.post_code or '').strip() for r in rows if (r.post_code or '').strip()})
+        post_label = post_names[0] if len(post_names) == 1 else 'Multiple'
+        code_label = codes[0] if len(codes) == 1 else 'Multiple'
+        exam_time = rows[0].exam_date_time if rows else ''
 
-    serial = 0
-    for (center, bldg, flr, room), group in groupby(enriched, key=lambda t: key_tuple(t[0])):
-        c.showPage()
-        y = draw_header(center, bldg, flr, room)
+        if page_started:
+            c.showPage()
+        page_started = True
+        room_page = 1
+        y = draw_header(center, bldg, flr, room, post_label, code_label, exam_time)
+
         used = 0
+        serial = 0
+        for seat_row in rows:
+            # Assign next applicant for this post_code (case-insensitive)
+            code_key = ((seat_row.post_code or '').strip().upper())
+            lst = applicants_by_code.get(code_key, [])
+            idx = consumed_idx.get(code_key, 0)
+            applicant = lst[idx] if idx < len(lst) else None
+            if applicant is not None:
+                consumed_idx[code_key] = idx + 1
 
-        for seat, raw_roll, norm_roll in list(group):
             if used >= rows_per_page:
+                c.setFont("Helvetica", 9)
+                c.drawCentredString(PAGE_W / 2, 0.5 * inch, f"Page {room_page}")
                 c.showPage()
-                y = draw_header(center, bldg, flr, room)
+                room_page += 1
+                y = draw_header(center, bldg, flr, room, post_label, code_label, exam_time)
                 used = 0
-
             serial += 1
-            row_h = draw_row(serial, seat, raw_roll, norm_roll, y - ROW_H)
+            row_h = draw_row(serial, seat_row, applicant, y - ROW_H)
             y -= row_h
             used += 1
-
+        # Footer for the last page of this room
         c.setFont("Helvetica", 9)
-        c.drawCentredString(PAGE_W / 2, 0.5 * inch, f"Page {c.getPageNumber()}")
+        c.drawCentredString(PAGE_W / 2, 0.5 * inch, f"Page {room_page}")
 
     c.save()
     pdf = buffer.getvalue()
