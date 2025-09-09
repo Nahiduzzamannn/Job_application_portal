@@ -1,0 +1,23 @@
+{
+  "folders": [
+    {
+      "name": "Backend",
+      "path": "./Backend"
+    },
+    {
+      "name": "Frontend",
+      "path": "./Frontend"
+    }
+  ],
+  "settings": {
+    "python.terminal.activateEnvironment": false,
+    "python.defaultInterpreterPath": null
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "bradlc.vscode-tailwindcss",
+      "esbenp.prettier-vscode"
+    ]
+  }
+}

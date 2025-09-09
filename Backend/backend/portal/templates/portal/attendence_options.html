@@ -3,24 +3,675 @@
   rel="stylesheet"
   href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
 />
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css"
+/>
 <style>
+  body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
   .container {
-    max-width: 700px;
+    max-width: 900px;
     margin: 30px auto;
-    padding: 24px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.08);
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .main-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 40px;
+    transition: all 0.3s ease;
+  }
+
+  .main-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+  }
+
+  .page-title {
+    color: #2c3e50;
+    font-weight: 700;
+    font-size: 2.5rem;
+    margin-bottom: 40px;
+    text-align: center;
+    position: relative;
+  }
+
+  .page-title::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 2px;
+  }
+
+  .form-section {
+    margin-bottom: 30px;
+    padding: 30px;
+    border: none;
+    border-radius: 15px;
+    background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.1), -5px -5px 15px rgba(255, 255, 255, 0.7);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .form-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+  }
+
+  .form-section:hover {
+    transform: translateY(-3px);
+    box-shadow: 8px 8px 20px rgba(0, 0, 0, 0.15), -8px -8px 20px rgba(255, 255, 255, 0.8);
+  }
+
+  .section-title {
+    color: #2c3e50;
+    font-weight: 600;
+    font-size: 1.4rem;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-icon {
+    color: #667eea;
+    font-size: 1.5rem;
+  }
+
+  .form-select, .form-control {
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 12px 15px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: white;
+  }
+
+  .form-select:focus, .form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    transform: translateY(-2px);
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 10px;
+    padding: 12px 30px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+
+  .btn-primary:hover::before {
+    left: 100%;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+  }
+
+  .btn-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border: none;
+    border-radius: 15px;
+    padding: 20px 40px;
+    font-weight: 600;
+    font-size: 1.2rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-success::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+
+  .btn-success:hover::before {
+    left: 100%;
+  }
+
+  .btn-success:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 35px rgba(40, 167, 69, 0.4);
+  }
+
+  .loading-spinner {
+    display: none;
+    margin-left: 10px;
+  }
+
+  .btn.loading .loading-spinner {
+    display: inline-block;
+  }
+
+  .btn.loading .btn-text {
+    opacity: 0.7;
+  }
+
+  .progress-container {
+    margin-top: 20px;
+    display: none;
+  }
+
+  .progress {
+    height: 8px;
+    border-radius: 10px;
+    background: #e9ecef;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+  }
+
+  .stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+
+  .stat-card {
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #667eea;
+    margin-bottom: 5px;
+  }
+
+  .stat-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .custom-center-container {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 15px;
+    border: 2px dashed #667eea;
+    transition: all 0.3s ease;
+  }
+
+  .fade-in {
+    animation: fadeIn 0.5s ease-in;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .pulse {
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(102, 126, 234, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(102, 126, 234, 0);
+    }
+  }
+
+  .tooltip-custom {
+    position: relative;
+    cursor: help;
+  }
+
+  .tooltip-custom::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2c3e50;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 1000;
+  }
+
+  .tooltip-custom:hover::after {
+    opacity: 1;
+    visibility: visible;
+    bottom: calc(100% + 5px);
+  }
+
+  .selected-center-display {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+    display: none;
+    align-items: center;
+    gap: 12px;
+    animation: slideInDown 0.5s ease;
+  }
+
+  .selected-center-display.show {
+    display: flex;
+  }
+
+  .selected-center-display .icon {
+    font-size: 1.2rem;
+  }
+
+  .selected-center-display .text {
+    flex: 1;
+    font-weight: 600;
+  }
+
+  .selected-center-display .clear-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .selected-center-display .clear-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+  }
+
+  @keyframes slideInDown {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 </style>
 {% endblock %} {% block content %}
-<div class="container text-center">
-  <h1 class="mb-4">Generate Attendance Sheets</h1>
-  <a
-    href="{% url 'generate_room_attendance' %}?all=1"
-    class="btn btn-primary btn-lg"
-  >
-    Generate All (center &amp; room wise)
-  </a>
+<div class="container">
+  <div class="main-card" data-aos="fade-up">
+    <h1 class="page-title" data-aos="fade-down">
+      <i class="fas fa-calendar-check"></i>
+      Generate Attendance Sheets
+    </h1>
+
+    <!-- Statistics Dashboard -->
+    <div class="stats-container" data-aos="fade-up" data-aos-delay="200">
+      <div class="stat-card">
+        <div class="stat-number" id="total-centers">{{ centers|length }}</div>
+        <div class="stat-label">Total Centers</div>
+      </div>
+    </div>
+
+    <!-- Selected Center Display -->
+    <div class="selected-center-display {% if selected_center or selected_custom_center %}show{% endif %}" id="selected-center-display" data-aos="fade-down" data-aos-delay="250">
+      <div class="icon">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="text">
+        <strong>Currently Selected:</strong> 
+        <span id="selected-center-text">
+          {% if selected_custom_center %}
+            {{ selected_custom_center }} (Custom Center)
+          {% elif selected_center %}
+            {{ selected_center }}
+          {% endif %}
+        </span>
+      </div>
+      <button class="clear-btn" onclick="clearSelection()" title="Clear Selection">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- Center-based Generation Form -->
+    <div class="form-section" data-aos="fade-right" data-aos-delay="300">
+      <h4 class="section-title">
+        <i class="fas fa-building section-icon"></i>
+        Generate by Center
+        <i class="fas fa-info-circle tooltip-custom ms-2" 
+           data-tooltip="Generate attendance sheets for a specific center"></i>
+      </h4>
+      <form
+        method="GET"
+        action="{% url 'generate_room_attendance' %}"
+        class="row g-3"
+        id="center-form"
+      >
+        <div class="col-md-12">
+          <label for="center_dropdown" class="form-label">
+            <i class="fas fa-map-marker-alt me-2"></i>Select Center:
+          </label>
+          <select
+            name="center"
+            id="center_dropdown"
+            class="form-select"
+            onchange="toggleCustomCenter()"
+          >
+            <option value="">-- Select Center --</option>
+            {% for center in centers %}
+            <option value="{{ center }}" {% if center == selected_center %}selected{% endif %}>{{ center }}</option>
+            {% endfor %}
+            <option value="custom" {% if selected_custom_center %}selected{% endif %}>
+              <i class="fas fa-plus"></i> Enter Custom Center
+            </option>
+          </select>
+        </div>
+
+        <div class="col-12" id="custom_center_div" style="display: {% if selected_custom_center %}block{% else %}none{% endif %}">
+          <div class="custom-center-container fade-in">
+            <label for="custom_center" class="form-label">
+              <i class="fas fa-edit me-2"></i>Enter Center Name:
+            </label>
+            <input
+              type="text"
+              name="custom_center"
+              id="custom_center"
+              class="form-control"
+              placeholder="e.g., MIST, BUET, etc."
+              value="{{ selected_custom_center|default:'' }}"
+            />
+          </div>
+        </div>
+
+        <div class="col-12">
+          <button type="submit" class="btn btn-primary" id="generate-btn">
+            <span class="btn-text">
+              <i class="fas fa-file-alt me-2"></i>
+              Generate for Selected Center
+            </span>
+            <div class="spinner-border spinner-border-sm loading-spinner" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </button>
+          
+          <div class="progress-container" id="progress-container">
+            <div class="progress">
+              <div class="progress-bar" role="progressbar" style="width: 0%" id="progress-bar"></div>
+            </div>
+            <small class="text-muted mt-2" id="progress-text">Preparing...</small>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Generate All Option -->
+    <div class="form-section text-center" data-aos="fade-left" data-aos-delay="400">
+      <h4 class="section-title justify-content-center">
+        <i class="fas fa-globe section-icon"></i>
+        Generate All Centers
+        <i class="fas fa-info-circle tooltip-custom ms-2" 
+           data-tooltip="Generate attendance sheets for all centers and rooms"></i>
+      </h4>
+      <p class="text-muted mb-4">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        This will generate attendance sheets for all centers and rooms. This may take some time.
+      </p>
+      <a
+        href="{% url 'generate_room_attendance' %}?all=1"
+        class="btn btn-success btn-lg pulse"
+        id="generate-all-btn"
+      >
+        <i class="fas fa-rocket me-2"></i>
+        <span class="btn-text">Generate All (All Centers & Rooms)</span>
+        <div class="spinner-border spinner-border-sm loading-spinner" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </a>
+    </div>
+  </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+<script>
+  // Initialize AOS (Animate On Scroll)
+  AOS.init({
+    duration: 800,
+    once: true,
+    offset: 100
+  });
+
+  // Enhanced toggle function with animations
+  function toggleCustomCenter() {
+    const dropdown = document.getElementById("center_dropdown");
+    const customDiv = document.getElementById("custom_center_div");
+    const customInput = document.getElementById("custom_center");
+    const selectedDisplay = document.getElementById("selected-center-display");
+    const selectedText = document.getElementById("selected-center-text");
+
+    if (dropdown.value === "custom") {
+      customDiv.style.display = "block";
+      customDiv.classList.add("fade-in");
+      customInput.required = true;
+      
+      // Update selected center display for custom
+      customInput.addEventListener('input', function() {
+        if (this.value.trim()) {
+          selectedText.textContent = this.value + " (Custom Center)";
+          selectedDisplay.classList.add("show");
+        } else {
+          selectedDisplay.classList.remove("show");
+        }
+      });
+      
+    } else if (dropdown.value !== "") {
+      customDiv.style.display = "none";
+      customInput.required = false;
+      customInput.value = "";
+      
+      // Update selected center display for regular center
+      selectedText.textContent = dropdown.value;
+      selectedDisplay.classList.add("show");
+      
+    } else {
+      customDiv.style.display = "none";
+      customInput.required = false;
+      customInput.value = "";
+      selectedDisplay.classList.remove("show");
+    }
+  }
+
+  // Function to clear the selection
+  function clearSelection() {
+    const dropdown = document.getElementById("center_dropdown");
+    const customDiv = document.getElementById("custom_center_div");
+    const customInput = document.getElementById("custom_center");
+    const selectedDisplay = document.getElementById("selected-center-display");
+    
+    // Reset form
+    dropdown.value = "";
+    customInput.value = "";
+    customInput.required = false;
+    customDiv.style.display = "none";
+    
+    // Hide selected center display
+    selectedDisplay.classList.remove("show");
+    
+    // Show success notification
+    showNotification('Selection cleared successfully!', 'info');
+  }
+
+  // Enhanced form submission with loading states and auto-refresh
+  document.getElementById('center-form').addEventListener('submit', function(e) {
+    const btn = document.getElementById('generate-btn');
+    const progressContainer = document.getElementById('progress-container');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    
+    btn.classList.add('loading');
+    progressContainer.style.display = 'block';
+    
+    // Simulate progress
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+      progress += Math.random() * 15;
+      if (progress > 90) progress = 90;
+      
+      progressBar.style.width = progress + '%';
+      
+      if (progress < 30) {
+        progressText.textContent = 'Initializing...';
+      } else if (progress < 60) {
+        progressText.textContent = 'Generating sheets...';
+      } else {
+        progressText.textContent = 'Finalizing...';
+      }
+    }, 200);
+    
+    // Simulate completion and auto-refresh
+    setTimeout(() => {
+      clearInterval(progressInterval);
+      progressBar.style.width = '100%';
+      progressText.textContent = 'Complete! Refreshing page...';
+      
+      // Show success notification
+      showNotification('PDF generated successfully! Page will refresh in 2 seconds.', 'success');
+      
+      // Auto-refresh after 2 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    }, 3000);
+  });
+
+  // Generate all button loading state and auto-refresh
+  document.getElementById('generate-all-btn').addEventListener('click', function(e) {
+    this.classList.add('loading');
+    
+    // Show notification and auto-refresh after delay
+    showNotification('Generating all attendance sheets. Page will refresh automatically after completion.', 'info');
+    
+    // Auto-refresh after 5 seconds (assuming generation takes longer for all centers)
+    setTimeout(() => {
+      window.location.reload();
+    }, 5000);
+  });
+
+  // Notification system
+  function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} position-fixed`;
+    notification.style.cssText = `
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      min-width: 300px;
+      animation: slideInRight 0.5s ease;
+    `;
+    notification.innerHTML = `
+      <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'info' ? 'info-circle' : 'exclamation-triangle'} me-2"></i>
+      ${message}
+      <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.remove();
+      }
+    }, 5000);
+  }
+
+  // Add CSS for slide animation
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes slideInRight {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+</script>
 {% endblock %}

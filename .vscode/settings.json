@@ -1,0 +1,12 @@
+{
+  "python.terminal.activateEnvironment": false,
+  "python.defaultInterpreterPath": null,
+  "files.associations": {
+    "*.py": "python"
+  },
+  "[python]": {
+    "python.defaultInterpreterPath": "./Backend/env/Scripts/python.exe"
+  },
+  "python.analysis.autoSearchPaths": false,
+  "python.analysis.extraPaths": []
+}

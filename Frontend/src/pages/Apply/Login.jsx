@@ -1,35 +1,36 @@
 // Login.jsx
-import React, { useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import React, { useState } from "react";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 
 function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setErrorMsg('');
-   
-  
+    setErrorMsg("");
+
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/login/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("http://127.0.0.1:8000/api/login/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
       setIsLoading(true);
       const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || 'Login failed');
-  
-      localStorage.setItem('token', data.access);
-      localStorage.setItem('', data.access);
-      localStorage.setItem('token', data.access);
-      const categoryId = searchParams.get('categoryId'); // ✅ Extract categoryId
-      const redirectPath = categoryId ? `/subcategories/${categoryId}` : '/categories'; // ✅ Redirect based on categoryId
+      if (!response.ok) throw new Error(data.detail || "Login failed");
+
+      localStorage.setItem("token", data.access);
+      localStorage.setItem("", data.access);
+      localStorage.setItem("token", data.access);
+      const categoryId = searchParams.get("categoryId"); // ✅ Extract categoryId
+      const redirectPath = categoryId
+        ? `/subcategories/${categoryId}`
+        : "/categories"; // ✅ Redirect based on categoryId
       navigate(redirectPath);
     } catch (err) {
       setErrorMsg(err.message);
@@ -37,13 +38,16 @@ function Login() {
       setIsLoading(false);
     }
   };
-  
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center text-indigo-700 mb-6">Log In</h2>
-        {errorMsg && <p className="text-red-600 text-sm mb-4 text-center">{errorMsg}</p>}
+        <h2 className="text-2xl font-bold text-center text-indigo-700 mb-6">
+          Log In
+        </h2>
+        {errorMsg && (
+          <p className="text-red-600 text-sm mb-4 text-center">{errorMsg}</p>
+        )}
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-gray-700 mb-1">Username</label>
@@ -70,12 +74,22 @@ function Login() {
             disabled={isLoading}
             className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700"
           >
-            {isLoading ? 'Logging in...' : 'Log In'}
+            {isLoading ? "Logging in..." : "Log In"}
           </button>
         </form>
+        <div className="mt-2 text-right">
+          <Link
+            to="/forgot-password"
+            className="text-sm text-indigo-600 hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <p className="mt-4 text-center text-sm text-gray-600">
-          Don’t have an account?{' '}
-          <Link to="/signup" className="text-indigo-600 hover:underline">Sign up here</Link>
+          Don’t have an account?{" "}
+          <Link to="/signup" className="text-indigo-600 hover:underline">
+            Sign up here
+          </Link>
         </p>
       </div>
     </div>

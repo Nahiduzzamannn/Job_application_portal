@@ -369,9 +369,12 @@ def generate_rolls_view(request):
 def attendance_sheet_options(request):
     post_codes = (SeatPlan.objects.values_list('post_code', flat=True)
                   .distinct().order_by('post_code'))
+    centers = (SeatPlan.objects.values_list('exam_center', flat=True)
+               .distinct().order_by('exam_center'))
     subcategories = SubCategory.objects.all().order_by('name')
     return render(request, "portal/attendence_options.html", {
         "post_codes": post_codes,
+        "centers": centers,
         "subcategories": subcategories,
     })
 
@@ -416,22 +419,39 @@ def generate_attendance_from_seatplan(request):
     """
     post_code_filter = (request.GET.get('post_code') or '').strip()
     subcat_filter = (request.GET.get('subcategory_id') or '').strip()
+    center_filter = (request.GET.get('center') or '').strip()
+    custom_center_filter = (request.GET.get('custom_center') or '').strip()
     action_flag = (request.GET.get('action') or request.GET.get('all') or '').strip().lower()
 
-    # If no filters provided and no explicit generate-all flag, show the options page here
-    if not post_code_filter and not subcat_filter and action_flag not in ('1', 'true', 'go', 'generate', 'all'):
+    # Handle center filtering logic
+    selected_center = None
+    if center_filter and center_filter != 'custom':
+        selected_center = center_filter
+    elif center_filter == 'custom' and custom_center_filter:
+        selected_center = custom_center_filter
+
+    # If no filters provided and no explicit generate-all flag, show the options page
+    if not post_code_filter and not subcat_filter and not selected_center and action_flag not in ('1', 'true', 'go', 'generate', 'all'):
         post_codes = (SeatPlan.objects.values_list('post_code', flat=True)
                       .distinct().order_by('post_code'))
+        centers = (SeatPlan.objects.values_list('exam_center', flat=True)
+                   .distinct().order_by('exam_center'))
         subcategories = SubCategory.objects.all().order_by('name')
         return render(request, "portal/attendence_options.html", {
             "post_codes": post_codes,
+            "centers": centers,
             "subcategories": subcategories,
+            "selected_center": selected_center,
+            "selected_custom_center": custom_center_filter if center_filter == 'custom' else None,
         })
 
-    # 1) SeatPlan rows (optional post_code filter)
+    # 1) SeatPlan rows with filters
     seat_plans = SeatPlan.objects.all()
     if post_code_filter:
         seat_plans = seat_plans.filter(post_code__iexact=post_code_filter)
+    if selected_center:
+        seat_plans = seat_plans.filter(exam_center__icontains=selected_center)
+    
     seat_plans = seat_plans.order_by('exam_center', 'building', 'floor', 'room_no', 'id')
     if not seat_plans.exists():
         return HttpResponse("No SeatPlan data found for the selected filters.", content_type="text/plain", status=404)
@@ -465,7 +485,8 @@ def generate_attendance_from_seatplan(request):
 
     # 4) PDF setup
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename=attendance_sheets.pdf'
+    center_name = selected_center or "All_Centers"
+    response['Content-Disposition'] = f'attachment; filename=attendance_sheets_{center_name}.pdf'
 
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=landscape(A3))
@@ -477,7 +498,7 @@ def generate_attendance_from_seatplan(request):
     CELL_PAD = 4
 
     CONTENT_W = PAGE_W - LM - RM
-    HEADER_H  = 1.55 * inch
+    HEADER_H  = 1.8 * inch  # Increased for roll range
 
     ROW_H = 1.05 * inch
     IMAGE_TARGET_H = ROW_H - 0.30 * inch
@@ -509,10 +530,30 @@ def generate_attendance_from_seatplan(request):
         except Exception:
             return None
 
-    def draw_header(center, bldg, flr, room, post_label, code_label, exam_time):
+    def get_roll_range(room_rows, current_consumed_idx):
+        """Calculate roll range for students in a room"""
+        rolls = []
+        temp_consumed = current_consumed_idx.copy()
+        
+        for seat_row in room_rows:
+            code_key = ((seat_row.post_code or '').strip().upper())
+            lst = applicants_by_code.get(code_key, [])
+            idx = temp_consumed.get(code_key, 0)
+            if idx < len(lst):
+                applicant = lst[idx]
+                if applicant and applicant.roll_number:
+                    rolls.append(applicant.roll_number)
+                temp_consumed[code_key] = idx + 1
+        
+        if rolls:
+            rolls.sort()
+            return f"{rolls[0]} to {rolls[-1]}"
+        return "No rolls assigned"
+
+    def draw_header(center, bldg, flr, room, post_label, code_label, exam_time, roll_range):
         y = PAGE_H - TM
         c.setFont("Helvetica-Bold", 13)
-        c.drawString(LM, y, f"Institution: {center or 'N/A'}")
+        c.drawString(LM, y, f"Center: {center or 'N/A'}")
         c.setFont("Helvetica", 11)
         c.drawRightString(PAGE_W - RM, y, f"Building: {bldg or 'N/A'} | Floor: {flr or 'N/A'} | Room: {room or 'N/A'}")
 
@@ -521,6 +562,11 @@ def generate_attendance_from_seatplan(request):
         c.drawString(LM, y, f"Post: {post_label}")
         c.setFont("Helvetica", 11)
         c.drawRightString(PAGE_W - RM, y, f"Code: {code_label} | Exam: {exam_time or 'N/A'}")
+
+        # Add roll range information
+        y -= 0.28 * inch
+        c.setFont("Helvetica-Bold", 11)
+        c.drawCentredString(PAGE_W / 2, y, f"Roll Range: {roll_range}")
 
         y -= 0.32 * inch
         c.setFont("Helvetica-Bold", 16)
@@ -631,11 +677,14 @@ def generate_attendance_from_seatplan(request):
         code_label = codes[0] if len(codes) == 1 else 'Multiple'
         exam_time = rows[0].exam_date_time if rows else ''
 
+        # Calculate roll range for this room using current consumed state
+        roll_range = get_roll_range(rows, consumed_idx)
+
         if page_started:
             c.showPage()
         page_started = True
         room_page = 1
-        y = draw_header(center, bldg, flr, room, post_label, code_label, exam_time)
+        y = draw_header(center, bldg, flr, room, post_label, code_label, exam_time, roll_range)
 
         used = 0
         serial = 0
@@ -653,7 +702,7 @@ def generate_attendance_from_seatplan(request):
                 c.drawCentredString(PAGE_W / 2, 0.5 * inch, f"Page {room_page}")
                 c.showPage()
                 room_page += 1
-                y = draw_header(center, bldg, flr, room, post_label, code_label, exam_time)
+                y = draw_header(center, bldg, flr, room, post_label, code_label, exam_time, roll_range)
                 used = 0
             serial += 1
             row_h = draw_row(serial, seat_row, applicant, y - ROW_H)

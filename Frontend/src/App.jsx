@@ -10,6 +10,7 @@ import SubmittedForm from "./pages/Apply/Submitted_form";
 import Payment from "./pages/Apply/Payment";
 import AdmitCard from "./pages/Apply/AdmitCard";
 import Home from "./pages/Apply/Home";
+import ForgotPassword from "./pages/Apply/ForgotPassword";
 
 function App() {
   return (
@@ -18,11 +19,10 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/categories" element={<CategoryList />} />
 
-        
-
         {/* Auth routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* These routes use subCategoryId for application-related actions */}
         <Route path="/submitted/:subCategoryId" element={<SubmittedForm />} />
