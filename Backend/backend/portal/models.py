@@ -119,8 +119,8 @@ class SeatPlan(models.Model):
     # start_roll = models.CharField(max_length=20)
     # end_roll = models.CharField(max_length=20)
     exam_date_time = models.CharField(max_length=100) 
-    roll=models.CharField(max_length=20)
+    roll = models.CharField(max_length=20, null=True, blank=True)
      # or DateTimeField if parsed
 
-    def str(self):
+    def __str__(self):
         return f"{self.post_name} - {self.room_no}"
