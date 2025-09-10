@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
+import { applications, getAuthToken } from "../../lib/api";
 
 export default function AdmissionForm() {
   const { subCategoryId } = useParams();
@@ -18,7 +18,7 @@ export default function AdmissionForm() {
     reason: "",
     present_address: "",
     permanent_address: "",
-    is_submitted: false
+    is_submitted: false,
   });
 
   const [photo, setPhoto] = useState(null);
@@ -73,8 +73,12 @@ export default function AdmissionForm() {
     }
 
     // Updated name validation to allow letters, spaces, and dots
-    if (formData.student_name && !/^[A-Za-z\s.]+$/.test(formData.student_name)) {
-      newErrors.student_name = "Name must contain only letters, spaces and dots";
+    if (
+      formData.student_name &&
+      !/^[A-Za-z\s.]+$/.test(formData.student_name)
+    ) {
+      newErrors.student_name =
+        "Name must contain only letters, spaces and dots";
       isValid = false;
     }
 
@@ -134,7 +138,7 @@ export default function AdmissionForm() {
 
     try {
       const formDataToSend = new FormData();
-      
+
       // Append all data including files
       formDataToSend.append("subcategory_id", subCategoryId);
       formDataToSend.append("student_name", formData.student_name);
@@ -150,76 +154,64 @@ export default function AdmissionForm() {
       formDataToSend.append("present_address", formData.present_address);
       formDataToSend.append("permanent_address", formData.permanent_address);
       formDataToSend.append("is_submitt", "false");
-      
+
       if (photo) formDataToSend.append("photo", photo);
       if (signature) formDataToSend.append("signature", signature);
 
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       if (!token) {
         alert("You are not logged in. Please log in first.");
         navigate("/login");
         return;
       }
 
-      const response = await axios.post(
-        "http://localhost:8000/api/apply/", 
-        formDataToSend,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await applications.create(formDataToSend);
 
-      if (response.status === 201) {
-        setSubmitSuccess(true);
-        // Reset form
-        setFormData({
-          student_name: "",
-          dob: "",
-          gender: "",
-          student_class: "",
-          father_name: "",
-          mother_name: "",
-          contact: "",
-          email: "",
-          previous_school: "",
-          reason: "",
-          present_address: "",
-          permanent_address: "",
-          is_submitted: false
-        });
-        setPhoto(null);
-        setSignature(null);
-        setErrors({});
-      }
+      setSubmitSuccess(true);
+      // Reset form
+      setFormData({
+        student_name: "",
+        dob: "",
+        gender: "",
+        student_class: "",
+        father_name: "",
+        mother_name: "",
+        contact: "",
+        email: "",
+        previous_school: "",
+        reason: "",
+        present_address: "",
+        permanent_address: "",
+        is_submitted: false,
+      });
+      setPhoto(null);
+      setSignature(null);
+      setErrors({});
     } catch (error) {
       console.error("Submission error:", error);
-      if (error.response) {
-        if (error.response.status === 401) {
-          localStorage.removeItem("token");
-          navigate("/login");
-          return;
-        } else if (error.response.data) {
-          // Handle backend validation errors
-          if (error.response.data.non_field_errors) {
-            setServerError(error.response.data.non_field_errors.join(" "));
-          } else {
-            const backendErrors = error.response.data;
-            const formattedErrors = {};
-            
-            Object.keys(backendErrors).forEach(key => {
-              formattedErrors[key] = Array.isArray(backendErrors[key]) 
-                ? backendErrors[key].join(", ")
-                : backendErrors[key];
-            });
-            
-            setErrors(formattedErrors);
-          }
+      if (error.response?.status === 401) {
+        navigate("/login");
+        return;
+      } else if (error.response?.data) {
+        // Handle backend validation errors
+        if (error.response.data.non_field_errors) {
+          setServerError(error.response.data.non_field_errors.join(" "));
+        } else {
+          const backendErrors = error.response.data;
+          const formattedErrors = {};
+
+          Object.keys(backendErrors).forEach((key) => {
+            formattedErrors[key] = Array.isArray(backendErrors[key])
+              ? backendErrors[key].join(", ")
+              : backendErrors[key];
+          });
+
+          setErrors(formattedErrors);
         }
       } else {
-        setServerError("Network error. Please check your connection and try again.");
+        setServerError(
+          "Network error. Please check your connection and try again."
+        );
       }
     } finally {
       setIsSubmitting(false);
@@ -239,37 +231,37 @@ export default function AdmissionForm() {
   if (submitSuccess) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-md overflow-hidden p-8 text-center">
-        <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-        <svg
-          className="h-6 w-6 text-green-600"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          d="M5 13l4 4L19 7"
-          />
-        </svg>
+        <div className="max-w-md w-full bg-white rounded-lg shadow-md overflow-hidden p-8 text-center">
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+            <svg
+              className="h-6 w-6 text-green-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </div>
+          <h3 className="mt-3 text-lg font-medium text-gray-900">
+            Application Submitted Successfully!
+          </h3>
+          <p className="mt-2 text-sm text-gray-500">
+            Thank you for your application. We will contact you soon.
+          </p>
+          <div className="mt-6">
+            <button
+              onClick={() => navigate(`/subcategories/${subCategoryId}`)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Return
+            </button>
+          </div>
         </div>
-        <h3 className="mt-3 text-lg font-medium text-gray-900">
-        Application Submitted Successfully!
-        </h3>
-        <p className="mt-2 text-sm text-gray-500">
-        Thank you for your application. We will contact you soon.
-        </p>
-        <div className="mt-6">
-        <button
-          onClick={() => navigate(`/subcategories/${subCategoryId}`)}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Return
-        </button>
-        </div>
-      </div>
       </div>
     );
   }
@@ -300,16 +292,19 @@ export default function AdmissionForm() {
             <div
               key={field}
               className={
-                field === "is_submitted" 
+                field === "is_submitted"
                   ? "hidden"
-                  : ["reason", "present_address", "permanent_address"].includes(field)
+                  : ["reason", "present_address", "permanent_address"].includes(
+                      field
+                    )
                   ? "md:col-span-2"
                   : ""
               }
             >
               {renderLabel(field)}
-
-              {["reason", "present_address", "permanent_address"].includes(field) ? (
+              {["reason", "present_address", "permanent_address"].includes(
+                field
+              ) ? (
                 <textarea
                   name={field}
                   value={formData[field]}
@@ -349,7 +344,11 @@ export default function AdmissionForm() {
                   name={field}
                   value={formData[field]}
                   onChange={handleChange}
-                  max={field === "dob" ? new Date().toISOString().split("T")[0] : undefined}
+                  max={
+                    field === "dob"
+                      ? new Date().toISOString().split("T")[0]
+                      : undefined
+                  }
                   maxLength={field === "contact" ? "11" : undefined}
                   className={`mt-1 block w-full border ${
                     errors[field] ? "border-red-500" : "border-gray-300"
@@ -376,7 +375,9 @@ export default function AdmissionForm() {
               <p className="mt-1 text-sm text-red-600">{errors.photo}</p>
             )}
             {photo && (
-              <p className="mt-1 text-sm text-green-600">Photo selected: {photo.name}</p>
+              <p className="mt-1 text-sm text-green-600">
+                Photo selected: {photo.name}
+              </p>
             )}
           </div>
 
@@ -393,7 +394,9 @@ export default function AdmissionForm() {
               <p className="mt-1 text-sm text-red-600">{errors.signature}</p>
             )}
             {signature && (
-              <p className="mt-1 text-sm text-green-600">Signature selected: {signature.name}</p>
+              <p className="mt-1 text-sm text-green-600">
+                Signature selected: {signature.name}
+              </p>
             )}
           </div>
 

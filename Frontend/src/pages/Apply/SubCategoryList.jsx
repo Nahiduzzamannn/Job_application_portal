@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { posts } from "../../lib/api";
 
 function SubCategoryList() {
   const { postId } = useParams(); // postId = category id
@@ -8,29 +9,26 @@ function SubCategoryList() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`http://localhost:8000/api/posts/${postId}/subcategories/`)
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to fetch subcategories.");
-        }
-        return res.json();
-      })
-      .then((data) => {
+    const fetchSubcategories = async () => {
+      try {
+        const data = await posts.getSubcategories(postId);
         setSubcategories(data);
-        setLoading(false);
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error("Error fetching subcategories:", error);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    fetchSubcategories();
   }, [postId]);
 
-  if (loading) return <p className="text-center mt-8">Loading subcategories...</p>;
+  if (loading)
+    return <p className="text-center mt-8">Loading subcategories...</p>;
 
   return (
     <div className="max-w-4xl mx-auto p-6">
       <h2 className="text-2xl font-bold mb-6">Available Subcategories</h2>
-
       {subcategories.length === 0 ? (
         <p>No subcategories available for this category.</p>
       ) : (

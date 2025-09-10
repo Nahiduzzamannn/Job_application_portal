@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
+import { applications, setAuthToken, getAuthToken } from "../../lib/api";
 
 export default function SubmittedForm() {
   const [application, setApplication] = useState(null);
@@ -14,7 +14,7 @@ export default function SubmittedForm() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = getAuthToken();
 
     if (!token) {
       setLoading(false);
@@ -30,20 +30,12 @@ export default function SubmittedForm() {
       setLoading(true);
       setError(null);
 
-      const response = await axios.get(
-        "http://localhost:8000/api/my-applications/",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const appData = response.data.length > 0 ? response.data[0] : null;
+      const data = await applications.getUserApplications();
+      const appData = data.length > 0 ? data[0] : null;
       if (appData) {
         setApplication(appData);
         setFormData(appData);
-        setIsEditing(false); // Always start in non-edit mode
+        setIsEditing(false);
         setNotFound(false);
       } else {
         setNotFound(true);
@@ -69,7 +61,7 @@ export default function SubmittedForm() {
   };
 
   const handleUpdate = async () => {
-    const token = localStorage.getItem("token");
+    const token = getAuthToken();
     if (!token || !application?.id) {
       navigate("/login");
       return;
@@ -80,18 +72,13 @@ export default function SubmittedForm() {
       const dataToSend = { ...formData };
       delete dataToSend.photo;
       delete dataToSend.signature;
-      const response = await axios.put(
-        `http://localhost:8000/api/update-application/${application.id}/`,
-        dataToSend,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
+
+      const updatedApplication = await applications.update(
+        application.id,
+        dataToSend
       );
-      setApplication(response.data);
-      setFormData(response.data);
+      setApplication(updatedApplication);
+      setFormData(updatedApplication);
       setIsEditing(false);
       setUpdateSuccess(true);
       setTimeout(() => setUpdateSuccess(false), 3000);
@@ -108,7 +95,7 @@ export default function SubmittedForm() {
   };
 
   const handleSubmitApplication = async () => {
-    const token = localStorage.getItem("token");
+    const token = getAuthToken();
     if (!token || !application?.id) {
       navigate("/login");
       return;
@@ -116,21 +103,9 @@ export default function SubmittedForm() {
     setLoading(true);
     setError(null);
     try {
-      // Update only is_submit field to true
-      const response = await axios.patch(
-        `http://localhost:8000/api/update-application/${application.id}/`,
-        { is_submit: true },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      // Optionally update local state if needed
+      await applications.partialUpdate(application.id, { is_submit: true });
       setApplication({ ...application, is_submit: true });
       setFormData({ ...formData, is_submit: true });
-      // Navigate to payment page
       navigate(`/payment/${application.subcategory}`);
     } catch (err) {
       console.error("Submit error:", err);
@@ -143,8 +118,9 @@ export default function SubmittedForm() {
       setLoading(false);
     }
   };
+
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    setAuthToken(null);
     navigate("/categories");
   };
 
@@ -233,6 +209,34 @@ export default function SubmittedForm() {
             className="w-full border rounded px-3 py-2"
           />
         </div>
+        {/* Date of Birth */}
+        <div>
+          <label className="block font-medium mb-1">Date of Birth</label>
+          <input
+            type="date"
+            name="dob"
+            value={formData.dob || ""}
+            onChange={handleChange}
+            disabled={!isEditing}
+            className="w-full border rounded px-3 py-2"
+          />
+        </div>
+        {/* Gender */}
+        <div>
+          <label className="block font-medium mb-1">Gender</label>
+          <select
+            name="gender"
+            value={formData.gender || ""}
+            onChange={handleChange}
+            disabled={!isEditing}
+            className="w-full border rounded px-3 py-2"
+          >
+            <option value="">Select Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
         {/* Father's Name */}
         <div>
           <label className="block font-medium mb-1">Father's Name</label>
@@ -264,34 +268,6 @@ export default function SubmittedForm() {
             type="text"
             name="student_class"
             value={formData.student_class || ""}
-            onChange={handleChange}
-            disabled={!isEditing}
-            className="w-full border rounded px-3 py-2"
-          />
-        </div>
-        {/* Gender */}
-        <div>
-          <label className="block font-medium mb-1">Gender</label>
-          <select
-            name="gender"
-            value={formData.gender || ""}
-            onChange={handleChange}
-            disabled={!isEditing}
-            className="w-full border rounded px-3 py-2"
-          >
-            <option value="">Select Gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-        {/* DOB */}
-        <div>
-          <label className="block font-medium mb-1">Birth Date</label>
-          <input
-            type="date"
-            name="dob"
-            value={formData.dob || ""}
             onChange={handleChange}
             disabled={!isEditing}
             className="w-full border rounded px-3 py-2"
@@ -396,7 +372,7 @@ export default function SubmittedForm() {
           <div className="flex flex-col">
             <button
               onClick={async () => {
-                const token = localStorage.getItem("token");
+                const token = getAuthToken();
                 if (!token || !application?.id) {
                   navigate("/login");
                   return;
@@ -404,16 +380,10 @@ export default function SubmittedForm() {
                 setLoading(true);
                 setError(null);
                 try {
-                  await axios.patch(
-                    `http://localhost:8000/api/update-application/${application.id}/`,
-                    { is_submit: true, is_active: true },
-                    {
-                      headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                      },
-                    }
-                  );
+                  await applications.partialUpdate(application.id, {
+                    is_submit: true,
+                    is_active: true,
+                  });
                   setApplication((prevApplication) => ({
                     ...prevApplication,
                     is_submit: true,

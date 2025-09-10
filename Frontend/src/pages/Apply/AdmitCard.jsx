@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
 import { usePDF } from "react-to-pdf";
+import { admitCards, seatPlans, getAuthToken } from "../../lib/api";
 
 function AdmitCard() {
   const { subCategoryId } = useParams();
@@ -13,7 +13,7 @@ function AdmitCard() {
   const { toPDF, targetRef } = usePDF({ filename: "admit-card.pdf" });
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = getAuthToken();
 
     if (!token || !subCategoryId) {
       setError("Unauthorized or invalid subcategory.");
@@ -21,39 +21,35 @@ function AdmitCard() {
       return;
     }
 
-    // Fetch admit card data
-    axios
-      .get(`http://localhost:8000/api/admit-card/${subCategoryId}/`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      .then((res) => {
-        setAdmitData(res.data);
-        
-        // After getting admit data, fetch seat plan data if roll number exists
-        if (res.data.roll_number) {
-          return axios.get(`http://localhost:8000/api/seatplans/?roll=${res.data.roll_number}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-        }
-        return null;
-      })
-      .then((seatPlanRes) => {
-        if (seatPlanRes && seatPlanRes.data && seatPlanRes.data.length > 0) {
-          setSeatPlanData(seatPlanRes.data[0]); // Take the first matching seat plan
-        }
-      })
-      .catch((err) => {
-        console.error("Error fetching data:", err);
-        setError("Admit card not found or unauthorized.");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+    fetchAdmitCardData();
   }, [subCategoryId]);
+
+  const fetchAdmitCardData = async () => {
+    try {
+      // Fetch admit card data
+      const admitCardData = await admitCards.get(subCategoryId);
+      setAdmitData(admitCardData);
+
+      // After getting admit data, fetch seat plan data if roll number exists
+      if (admitCardData.roll_number) {
+        try {
+          const seatPlanResponse = await seatPlans.getByRoll(
+            admitCardData.roll_number
+          );
+          if (seatPlanResponse && seatPlanResponse.length > 0) {
+            setSeatPlanData(seatPlanResponse[0]); // Take the first matching seat plan
+          }
+        } catch (seatPlanErr) {
+          console.warn("No seat plan data found for this roll number");
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setError("Admit card not found or unauthorized.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -64,7 +60,8 @@ function AdmitCard() {
   }
 
   if (error) return <p className="text-center text-red-600">{error}</p>;
-  if (!admitData) return <p className="text-center">No admit card data found.</p>;
+  if (!admitData)
+    return <p className="text-center">No admit card data found.</p>;
 
   return (
     <div className="max-w-4xl mx-auto p-4">
@@ -82,36 +79,62 @@ function AdmitCard() {
         className="p-6 bg-white shadow rounded border border-gray-200"
         style={{ width: "794px", height: "1123px" }} // A4 size in pixels (96dpi)
       >
-        <h2 className="text-3xl font-bold mb-6 text-center underline">Admit Card</h2>
-        
+        <h2 className="text-3xl font-bold mb-6 text-center underline">
+          Admit Card
+        </h2>
+
         <div className="grid grid-cols-3 gap-6 mb-8">
           <div className="col-span-2">
             <div className="space-y-3 text-lg">
-              <p><strong>Name:</strong> {admitData.student_name}</p>
-              <p><strong>Father's Name:</strong> {admitData.father_name}</p>
-              <p><strong>Mother's Name:</strong> {admitData.mother_name}</p>
-              <p><strong>Class:</strong> {admitData.student_class}</p>
-              <p><strong>Gender:</strong> {admitData.gender}</p>
-              <p><strong>DOB:</strong> {admitData.dob}</p>
-              <p><strong>Applicant No:</strong> {admitData.applicant_number}</p>
-              <p><strong>Roll No:</strong> {admitData.roll_number || "Not assigned yet"}</p>
-              <p><strong>Program:</strong> {admitData.post_title}</p>
-              <p><strong>Subcategory:</strong> {admitData.subcategory_name}</p>
-              
+              <p>
+                <strong>Name:</strong> {admitData.student_name}
+              </p>
+              <p>
+                <strong>Father's Name:</strong> {admitData.father_name}
+              </p>
+              <p>
+                <strong>Mother's Name:</strong> {admitData.mother_name}
+              </p>
+              <p>
+                <strong>Class:</strong> {admitData.student_class}
+              </p>
+              <p>
+                <strong>Gender:</strong> {admitData.gender}
+              </p>
+              <p>
+                <strong>DOB:</strong> {admitData.dob}
+              </p>
+              <p>
+                <strong>Applicant No:</strong> {admitData.applicant_number}
+              </p>
+              <p>
+                <strong>Roll No:</strong>{" "}
+                {admitData.roll_number || "Not assigned yet"}
+              </p>
+              <p>
+                <strong>Program:</strong> {admitData.post_title}
+              </p>
+              <p>
+                <strong>Subcategory:</strong> {admitData.subcategory_name}
+              </p>
+
               {/* Seat Plan Information */}
               {seatPlanData && (
                 <>
                   <p className="mt-4">
-                    <strong>Exam Center:</strong> {seatPlanData.exam_center}, {seatPlanData.building}, Floor {seatPlanData.floor}, Room {seatPlanData.room_no}
+                    <strong>Exam Center:</strong> {seatPlanData.exam_center},{" "}
+                    {seatPlanData.building}, Floor {seatPlanData.floor}, Room{" "}
+                    {seatPlanData.room_no}
                   </p>
                   <p>
-                    <strong>Exam Date & Time:</strong> {new Date(seatPlanData.exam_date_time).toLocaleString()}
+                    <strong>Exam Date & Time:</strong>{" "}
+                    {new Date(seatPlanData.exam_date_time).toLocaleString()}
                   </p>
                 </>
               )}
             </div>
           </div>
-          
+
           <div className="flex flex-col items-center">
             <div className="mb-4 border-2 border-gray-400 p-1">
               {admitData.photo ? (
@@ -121,7 +144,8 @@ function AdmitCard() {
                   className="w-40 h-40 object-cover"
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = "https://via.placeholder.com/150?text=No+Photo";
+                    e.target.src =
+                      "https://via.placeholder.com/150?text=No+Photo";
                   }}
                 />
               ) : (
@@ -146,7 +170,8 @@ function AdmitCard() {
                   className="h-16 object-contain mx-auto"
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = "https://via.placeholder.com/300x60?text=No+Signature";
+                    e.target.src =
+                      "https://via.placeholder.com/300x60?text=No+Signature";
                   }}
                 />
               ) : (
@@ -156,7 +181,7 @@ function AdmitCard() {
               )}
               <p className="text-sm">Applicant Signature</p>
             </div>
-            
+
             <div className="text-right">
               <p className="text-sm">Date: {new Date().toLocaleDateString()}</p>
               <div className="mt-8">
@@ -168,11 +193,17 @@ function AdmitCard() {
         </div>
 
         <div className="mt-12 text-center text-sm text-gray-600">
-          <p>This is an electronically generated document and does not require a signature.</p>
-          <p className="mt-2">Please bring this admit card to the examination center.</p>
+          <p>
+            This is an electronically generated document and does not require a
+            signature.
+          </p>
+          <p className="mt-2">
+            Please bring this admit card to the examination center.
+          </p>
           {seatPlanData && (
             <p className="mt-2 font-medium">
-              Exam Venue: {seatPlanData.exam_center}, {seatPlanData.building}, Floor {seatPlanData.floor}, Room {seatPlanData.room_no}
+              Exam Venue: {seatPlanData.exam_center}, {seatPlanData.building},
+              Floor {seatPlanData.floor}, Room {seatPlanData.room_no}
             </p>
           )}
         </div>

@@ -1,6 +1,7 @@
 // Login.jsx
 import React, { useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { auth, setAuthToken } from "../../lib/api";
 
 function Login() {
   const navigate = useNavigate();
@@ -13,27 +14,19 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setErrorMsg("");
+    setIsLoading(true);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/login/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-      setIsLoading(true);
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Login failed");
+      const data = await auth.login(username, password);
 
-      localStorage.setItem("token", data.access);
-      localStorage.setItem("", data.access);
-      localStorage.setItem("token", data.access);
-      const categoryId = searchParams.get("categoryId"); // ✅ Extract categoryId
+      setAuthToken(data.access);
+      const categoryId = searchParams.get("categoryId");
       const redirectPath = categoryId
         ? `/subcategories/${categoryId}`
-        : "/categories"; // ✅ Redirect based on categoryId
+        : "/categories";
       navigate(redirectPath);
     } catch (err) {
-      setErrorMsg(err.message);
+      setErrorMsg(err.response?.data?.detail || err.message || "Login failed");
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +79,7 @@ function Login() {
           </Link>
         </div>
         <p className="mt-4 text-center text-sm text-gray-600">
-          Don’t have an account?{" "}
+          Don't have an account?{" "}
           <Link to="/signup" className="text-indigo-600 hover:underline">
             Sign up here
           </Link>
