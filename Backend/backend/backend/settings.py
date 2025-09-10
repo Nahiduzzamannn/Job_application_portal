@@ -14,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 SECRET_KEY = 'django-insecure-f*-bc=^_(f)yd0^kl*anasusj*u0t=5n)k%1k6tq*ho3tl4nuq'
 DEBUG = True
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'madhumatigi.com', 'www.madhumatigi.com']
 
 # Application definition
 INSTALLED_APPS = [
@@ -111,6 +111,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS Settings
 CORS_ALLOW_ALL_ORIGINS = True
+
+# CSRF Settings
+CSRF_TRUSTED_ORIGINS = [
+    'https://madhumatigi.com',
+    'https://www.madhumatigi.com',
+    'http://madhumatigi.com',
+    'http://www.madhumatigi.com',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+]
 
 # File upload settings
 FILE_UPLOAD_PERMISSIONS = 0o644
