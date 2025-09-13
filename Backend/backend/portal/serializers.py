@@ -1,9 +1,15 @@
 from rest_framework import serializers
-from .models import PortalPost, SubCategory, SchoolApplicant,SeatPlan
+from .models import PortalPost, SubCategory, SchoolApplicant,SeatPlan, Category
 
 # -------------------------------
 # 🔷 Admin Part Serializers
 # -------------------------------
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'slug', 'is_active', 'created_at']
+        read_only_fields = ['slug', 'created_at']
 
 class SubCategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -12,10 +18,12 @@ class SubCategorySerializer(serializers.ModelSerializer):
 
 class PortalPostSerializer(serializers.ModelSerializer):
     subcategories = SubCategorySerializer(many=True, read_only=True)
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    category_slug = serializers.CharField(source='category.slug', read_only=True)
 
     class Meta:
         model = PortalPost
-        fields = ['id', 'title', 'category', 'description', 'created_at', 'subcategories']
+        fields = ['id', 'title', 'category', 'category_name', 'category_slug', 'description', 'created_at', 'subcategories']
 
 
 # serializers.py

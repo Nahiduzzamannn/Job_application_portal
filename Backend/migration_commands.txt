@@ -1,0 +1,15 @@
+# Create migration file for the new Category model
+# Run these commands in your terminal:
+
+# 1. Create migrations
+# python manage.py makemigrations
+
+# 2. Apply migrations  
+# python manage.py migrate
+
+# 3. Create some initial categories (optional)
+# python manage.py shell
+# from portal.models import Category
+# Category.objects.create(name="School Admission", slug="school-admission", description="School admission applications")
+# Category.objects.create(name="Job Applications", slug="job-applications", description="Job application posts")
+# Category.objects.create(name="Exam Notifications", slug="exam-notifications", description="Exam related notifications")

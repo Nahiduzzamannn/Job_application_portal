@@ -10,19 +10,12 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveIndex(
-            model_name='seatplan',
-            name='portal_seat_exam_ce_576cba_idx',
+        # Safely drop index if it exists (it was added in 0011)
+        migrations.RunSQL(
+            sql="DROP INDEX IF EXISTS portal_seat_exam_ce_576cba_idx;",
+            reverse_sql="CREATE INDEX portal_seat_exam_ce_576cba_idx ON portal_seatplan (exam_center, building, floor, room_no);"
         ),
-        migrations.RemoveField(
-            model_name='seatplan',
-            name='applicant',
-        ),
-        migrations.AddField(
-            model_name='seatplan',
-            name='roll',
-            field=models.CharField(blank=True, max_length=20, null=True),
-        ),
+        # Adjust roll_number back to non-unique (model has non-unique)
         migrations.AlterField(
             model_name='schoolapplicant',
             name='roll_number',

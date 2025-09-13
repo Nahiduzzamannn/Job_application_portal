@@ -2,20 +2,28 @@ from django.db import models
 import random
 from django.contrib.auth.models import User
 import uuid
+from django.utils.text import slugify
+
+# New dynamic Category model
+class Category(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=120, unique=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
 
 # Admin-posted circulars
 class PortalPost(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True) 
-    CATEGORY_CHOICES = [
-        ('admission', 'Admission'),
-        ('job', 'Job'),
-    ]
-
-
-
-
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     title = models.CharField(max_length=200)
-    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='posts')
     description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 

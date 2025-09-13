@@ -1,7 +1,26 @@
 // src/lib/api.js
 import axios from "axios";
 
-const API_URL = "https://madhumatigi.com/api";
+// Determine API base URL (fix: previous hardcoded production URL broke local login requests)
+const resolveApiBase = () => {
+  const envUrl = import.meta?.env?.VITE_API_BASE_URL;
+  const globalUrl =
+    typeof window !== "undefined" ? window.__API_BASE__ : undefined;
+  let base = envUrl || globalUrl;
+  if (!base) {
+    if (
+      typeof window !== "undefined" &&
+      window.location.hostname === "localhost"
+    ) {
+      base = "http://localhost:8000/api";
+    } else {
+      base = "https://madhumatigi.com/api";
+    }
+  }
+  return base.replace(/\/$/, ""); // strip single trailing slash
+};
+
+const API_URL = resolveApiBase();
 
 // Create axios instance with default config
 const api = axios.create({
@@ -21,9 +40,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Response interceptor for global error handling
@@ -31,23 +48,22 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
       localStorage.removeItem("token");
-      window.location.href = "/login";
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   }
 );
 
-// API methods
-
 // Authentication
 export const auth = {
   login: async (username, password) => {
+    // Ensure leading slash kept (axios will join correctly without duplicating)
     const response = await api.post("/login/", { username, password });
     return response.data;
   },
-
   register: async (username, email, password) => {
     const response = await api.post("/register/", {
       username,
@@ -56,7 +72,6 @@ export const auth = {
     });
     return response.data;
   },
-
   refreshToken: async (refreshToken) => {
     const response = await api.post("/token/refresh/", {
       refresh: refreshToken,
@@ -67,104 +82,55 @@ export const auth = {
 
 // Posts/Categories
 export const posts = {
-  getAll: async () => {
-    const response = await api.get("/posts/");
-    return response.data;
-  },
-
-  getSubcategories: async (postId) => {
-    const response = await api.get(`/posts/${postId}/subcategories/`);
-    return response.data;
-  },
+  getAll: async () => (await api.get("/posts/")).data,
+  getSubcategories: async (postId) =>
+    (await api.get(`/posts/${postId}/subcategories/`)).data,
 };
 
 // Applications
 export const applications = {
-  create: async (formData) => {
-    const response = await api.post("/apply/", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    return response.data;
-  },
-
-  getUserApplications: async () => {
-    const response = await api.get("/my-applications/");
-    return response.data;
-  },
-
-  update: async (id, data) => {
-    const response = await api.put(`/update-application/${id}/`, data);
-    return response.data;
-  },
-
-  partialUpdate: async (id, data) => {
-    const response = await api.patch(`/update-application/${id}/`, data);
-    return response.data;
-  },
+  create: async (formData) =>
+    (
+      await api.post("/apply/", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+    ).data,
+  getUserApplications: async () => (await api.get("/my-applications/")).data,
+  update: async (id, data) =>
+    (await api.put(`/update-application/${id}/`, data)).data,
+  partialUpdate: async (id, data) =>
+    (await api.patch(`/update-application/${id}/`, data)).data,
 };
 
 // Admit Cards
 export const admitCards = {
-  get: async (subcategoryId) => {
-    const response = await api.get(`/admit-card/${subcategoryId}/`);
-    return response.data;
-  },
+  get: async (subcategoryId) =>
+    (await api.get(`/admit-card/${subcategoryId}/`)).data,
 };
 
 // Seat Plans
 export const seatPlans = {
-  getByRoll: async (rollNumber) => {
-    const response = await api.get(`/seatplans/?roll=${rollNumber}`);
-    return response.data;
-  },
+  getByRoll: async (rollNumber) =>
+    (await api.get(`/seatplans/?roll=${rollNumber}`)).data,
 };
 
 // Generic API methods
 export const apiClient = {
-  get: async (url, config = {}) => {
-    const response = await api.get(url, config);
-    return response.data;
-  },
-
-  post: async (url, data, config = {}) => {
-    const response = await api.post(url, data, config);
-    return response.data;
-  },
-
-  put: async (url, data, config = {}) => {
-    const response = await api.put(url, data, config);
-    return response.data;
-  },
-
-  patch: async (url, data, config = {}) => {
-    const response = await api.patch(url, data, config);
-    return response.data;
-  },
-
-  delete: async (url, config = {}) => {
-    const response = await api.delete(url, config);
-    return response.data;
-  },
+  get: async (url, config = {}) => (await api.get(url, config)).data,
+  post: async (url, data, config = {}) =>
+    (await api.post(url, data, config)).data,
+  put: async (url, data, config = {}) =>
+    (await api.put(url, data, config)).data,
+  patch: async (url, data, config = {}) =>
+    (await api.patch(url, data, config)).data,
+  delete: async (url, config = {}) => (await api.delete(url, config)).data,
 };
 
-// Helper functions
 export const setAuthToken = (token) => {
-  if (token) {
-    localStorage.setItem("token", token);
-  } else {
-    localStorage.removeItem("token");
-  }
+  if (token) localStorage.setItem("token", token);
+  else localStorage.removeItem("token");
 };
+export const getAuthToken = () => localStorage.getItem("token");
+export const isAuthenticated = () => !!getAuthToken();
 
-export const getAuthToken = () => {
-  return localStorage.getItem("token");
-};
-
-export const isAuthenticated = () => {
-  return !!getAuthToken();
-};
-
-// Default export for the configured axios instance
 export default api;
