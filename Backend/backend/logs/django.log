@@ -1,0 +1,140 @@
+INFO 2025-09-14 00:52:24,801 autoreload 9656 18284 Watching for file changes with StatReloader
+INFO 2025-09-14 00:52:24,820 autoreload 12740 19816 Watching for file changes with StatReloader
+INFO 2025-09-14 00:52:24,820 autoreload 6356 12268 Watching for file changes with StatReloader
+INFO 2025-09-14 00:53:41,240 autoreload 12740 19816 D:\demo\Backend\backend\portal\models.py changed, reloading.
+INFO 2025-09-14 00:53:41,381 autoreload 9656 18284 D:\demo\Backend\backend\portal\models.py changed, reloading.
+INFO 2025-09-14 00:53:41,436 autoreload 6356 12268 D:\demo\Backend\backend\portal\models.py changed, reloading.
+INFO 2025-09-14 00:53:44,817 autoreload 14612 18140 Watching for file changes with StatReloader
+INFO 2025-09-14 00:53:44,849 autoreload 12548 6244 Watching for file changes with StatReloader
+INFO 2025-09-14 00:53:44,857 autoreload 17224 14484 Watching for file changes with StatReloader
+INFO 2025-09-14 01:02:08,935 autoreload 14612 18140 D:\demo\Backend\backend\backend\settings.py changed, reloading.
+INFO 2025-09-14 01:02:08,957 autoreload 17224 14484 D:\demo\Backend\backend\backend\settings.py changed, reloading.
+INFO 2025-09-14 01:02:09,788 autoreload 12548 6244 D:\demo\Backend\backend\backend\settings.py changed, reloading.
+INFO 2025-09-14 01:02:11,611 autoreload 15268 4612 Watching for file changes with StatReloader
+
+INFO 2025-09-14 01:02:12,407 autoreload 18536 6672 Watching for file changes with StatReloader
+INFO 2025-09-14 01:17:39,885 autoreload 15268 4612 D:\demo\Backend\backend\portal\models.py changed, reloading.
+INFO 2025-09-14 01:17:39,925 autoreload 12292 17448 D:\demo\Backend\backend\portal\models.py changed, reloading.
+INFO 2025-09-14 01:17:40,731 autoreload 18536 6672 D:\demo\Backend\backend\portal\models.py changed, reloading.
+INFO 2025-09-14 01:17:43,325 autoreload 17396 1564 Watching for file changes with StatReloader
+INFO 2025-09-14 01:17:43,325 autoreload 17596 15088 Watching for file changes with StatReloader
+INFO 2025-09-14 01:17:43,809 autoreload 16008 11752 Watching for file changes with StatReloader
+INFO 2025-09-14 01:18:05,635 autoreload 17396 1564 D:\demo\Backend\backend\portal\models.py changed, reloading.
+INFO 2025-09-14 01:18:05,668 autoreload 17596 15088 D:\demo\Backend\backend\portal\models.py changed, reloading.
+INFO 2025-09-14 01:18:06,111 autoreload 16008 11752 D:\demo\Backend\backend\portal\models.py changed, reloading.
+INFO 2025-09-14 01:18:09,694 autoreload 5684 1740 Watching for file changes with StatReloader
+INFO 2025-09-14 01:18:09,715 autoreload 11112 16980 Watching for file changes with StatReloader
+INFO 2025-09-14 01:18:09,799 autoreload 20416 6708 Watching for file changes with StatReloader
+INFO 2025-09-14 02:19:49,161 autoreload 5684 1740 D:\demo\Backend\backend\portal\models.py changed, reloading.
+INFO 2025-09-14 02:19:49,161 autoreload 20416 6708 D:\demo\Backend\backend\portal\models.py changed, reloading.
+INFO 2025-09-14 02:19:49,373 autoreload 11112 16980 D:\demo\Backend\backend\portal\models.py changed, reloading.
+INFO 2025-09-14 02:19:51,857 autoreload 2796 19208 Watching for file changes with StatReloader
+INFO 2025-09-14 02:19:51,857 autoreload 11032 16836 Watching for file changes with StatReloader
+INFO 2025-09-14 02:19:51,905 autoreload 3192 8616 Watching for file changes with StatReloader
+INFO 2025-09-14 07:37:07,375 basehttp 3192 15652 "OPTIONS /api/posts/1/subcategories/ HTTP/1.1" 200 0
+WARNING 2025-09-14 07:37:07,393 log 3192 15652 Unauthorized: /api/posts/1/subcategories/
+WARNING 2025-09-14 07:37:07,393 basehttp 3192 15652 "GET /api/posts/1/subcategories/ HTTP/1.1" 401 172
+INFO 2025-09-14 07:37:14,277 basehttp 3192 15652 "OPTIONS /api/login/ HTTP/1.1" 200 0
+ERROR 2025-09-14 07:37:15,629 log 3192 15652 Internal Server Error: /api/login/
+Traceback (most recent call last):
+  File "D:\demo\Backend\env\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "token_blacklist_outstandingtoken" does not exist
+LINE 1: INSERT INTO "token_blacklist_outstandingtoken" ("user_id", "...
+                    ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\demo\Backend\env\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "D:\demo\Backend\env\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "D:\demo\Backend\env\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\rest_framework_simplejwt\views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "D:\demo\Backend\env\Lib\site-packages\rest_framework\serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\rest_framework\serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\backend\portal\views.py", line 99, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\rest_framework_simplejwt\serializers.py", line 75, in validate
+    refresh = self.get_token(self.user)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\rest_framework_simplejwt\serializers.py", line 66, in get_token
+    return cls.token_class.for_user(user)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\rest_framework_simplejwt\tokens.py", line 344, in for_user
+    OutstandingToken.objects.create(
+  File "D:\demo\Backend\env\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\django\db\models\query.py", line 663, in create
+    obj.save(force_insert=True, using=self.db)
+  File "D:\demo\Backend\env\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+  File "D:\demo\Backend\env\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\django\db\models\query.py", line 1868, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\django\db\models\sql\compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+  File "D:\demo\Backend\env\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\demo\Backend\env\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "D:\demo\Backend\env\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "token_blacklist_outstandingtoken" does not exist
+LINE 1: INSERT INTO "token_blacklist_outstandingtoken" ("user_id", "...
+                    ^
+
+ERROR 2025-09-14 07:37:15,635 basehttp 3192 15652 "POST /api/login/ HTTP/1.1" 500 213980
+INFO 2025-09-14 07:38:41,184 autoreload 2796 19208 D:\demo\Backend\backend\portal\views.py changed, reloading.
+INFO 2025-09-14 07:38:41,253 autoreload 11032 16836 D:\demo\Backend\backend\portal\models.py changed, reloading.
+INFO 2025-09-14 07:38:41,502 autoreload 3192 8616 D:\demo\Backend\backend\portal\views.py changed, reloading.
