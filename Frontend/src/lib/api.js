@@ -2,6 +2,7 @@
 import axios from "axios";
 
 const API_URL = "https://madhumatigi.com/api";
+//const API_URL = "http://localhost:8000/api";
 
 // Create axios instance with default config
 const api = axios.create({
